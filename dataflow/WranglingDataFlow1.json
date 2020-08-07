@@ -1,0 +1,29 @@
+{
+	"name": "WranglingDataFlow1",
+	"properties": {
+		"type": "WranglingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"name": "DelimitedText1",
+					"script": "",
+					"dataset": {
+						"referenceName": "DelimitedText1",
+						"type": "DatasetReference"
+					}
+				}
+			],
+			"sinks": [
+				{
+					"name": "Sink1",
+					"dataset": {
+						"referenceName": "DelimitedText2",
+						"type": "DatasetReference"
+					},
+					"script": "sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Sink1"
+				}
+			],
+			"script": "section Section1;\r\nshared DelimitedText1 = let\r\n  AdfDoc = AzureStorage.DataLakeContents(\"https://sqlschoolstorage.dfs.core.windows.net/container/Directory/TripData.csv\"),\r\n  Csv = Csv.Document(AdfDoc, [Delimiter = \",\", Encoding = TextEncoding.Utf8, QuoteStyle = QuoteStyle.Csv]),\r\n  PromotedHeaders = Table.PromoteHeaders(Csv, [PromoteAllScalars = true])\r\nin\r\n  PromotedHeaders;\r\nshared UserQuery = let\r\n  Source = DelimitedText1,\r\n  #\"Removed columns\" = Table.RemoveColumns(Source, {\"hack_license\"}),\r\n  #\"Replaced value\" = Table.ReplaceValue(#\"Removed columns\", \"VTS\", \"Vessel Traffic Service\", Replacer.ReplaceValue, {\"vendor_id\"}),\r\n  #\"Filtered rows\" = Table.SelectRows(#\"Replaced value\", each [rate_code] = \"1\" or [rate_code] = \"2\")\r\nin\r\n  #\"Filtered rows\";\r\n"
+		}
+	}
+}
